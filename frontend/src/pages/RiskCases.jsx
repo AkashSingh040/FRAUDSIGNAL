@@ -7,6 +7,7 @@ const RiskCases = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterLevel, setFilterLevel] = useState("ALL");
 
   useEffect(() => {
     casesApi.list()
@@ -37,10 +38,49 @@ const RiskCases = () => {
     return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount || 0);
   };
 
-  const filteredCases = cases.filter(c => 
-    c.case_id.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (c.transaction_id && c.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredCases = cases.filter(c => {
+    const matchesSearch = c.case_id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (c.transaction_id && c.transaction_id.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    let matchesFilter = true;
+    if (filterLevel === 'HIGH') matchesFilter = c.risk_score >= 70;
+    else if (filterLevel === 'MEDIUM') matchesFilter = c.risk_score >= 30 && c.risk_score < 70;
+    else if (filterLevel === 'LOW') matchesFilter = c.risk_score < 30;
+
+    return matchesSearch && matchesFilter;
+  });
+
+  const handleExportCSV = () => {
+    if (filteredCases.length === 0) return;
+    
+    const headers = ['Case ID', 'Transaction ID', 'Risk Score', 'Risk Level', 'Status', 'Amount', 'Time'];
+    const csvRows = [headers.join(',')];
+    
+    filteredCases.forEach(c => {
+      const amount = (c.evidence?.observed_amount || 0).toString();
+      const time = new Date(c.created_at).toISOString();
+      const riskLevel = c.risk_score >= 70 ? 'HIGH' : c.risk_score >= 30 ? 'MEDIUM' : 'LOW';
+      const row = [
+        c.case_id,
+        c.transaction_id || '',
+        c.risk_score,
+        riskLevel,
+        c.status,
+        amount,
+        time
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    const csvContent = "data:text/csv;charset=utf-8," + csvRows.join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `fraudsignal_cases_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="flex-col gap-4">
@@ -49,11 +89,22 @@ const RiskCases = () => {
           <h1 className="page-title">Risk Cases</h1>
           <p className="page-subtitle">All investigated transactions</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn btn-outline text-xs">
-            <Filter size={14} /> Filter
-          </button>
-          <button className="btn btn-outline text-xs">
+        <div className="flex gap-2 items-center">
+          <div style={{ position: 'relative' }}>
+            <select 
+              className="btn btn-outline text-xs" 
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              style={{ appearance: 'none', paddingRight: '28px', backgroundColor: 'var(--bg-surface)' }}
+            >
+              <option value="ALL">All Risks</option>
+              <option value="HIGH">High Risk</option>
+              <option value="MEDIUM">Medium Risk</option>
+              <option value="LOW">Low Risk</option>
+            </select>
+            <Filter size={12} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+          </div>
+          <button className="btn btn-outline text-xs" onClick={handleExportCSV}>
             <Download size={14} /> Export CSV
           </button>
         </div>
