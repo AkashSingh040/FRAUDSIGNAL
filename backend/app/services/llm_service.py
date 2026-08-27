@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, Optional
-from openai import OpenAI
+from groq import Groq
 from app.config import settings
 from app.schemas.models import InvestigationReport, ActionDecision
 
@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 class LLMService:
     def __init__(self):
+        # We still read from LLM_API_KEY but pass to Groq
         self.api_key = settings.LLM_API_KEY
-        self.model = settings.LLM_MODEL
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.client = Groq(api_key=self.api_key) if self.api_key else None
 
     def _deterministic_fallback(self, case_context: Dict[str, Any]) -> InvestigationReport:
         logger.info("Using deterministic investigation fallback.")
@@ -66,16 +66,24 @@ class LLMService:
         
         try:
             response = self.client.chat.completions.create(
-                model=self.model,
+                model="openai/gpt-oss-120b",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": json.dumps(case_context, default=str)}
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.2
+                temperature=1,
+                max_completion_tokens=2048,
+                top_p=1,
+                reasoning_effort="medium",
+                stream=True
             )
             
-            content = response.choices[0].message.content
+            content = ""
+            for chunk in response:
+                if chunk.choices[0].delta.content is not None:
+                    content += chunk.choices[0].delta.content
+                    
             parsed = json.loads(content)
             
             return InvestigationReport(**parsed)
