@@ -129,18 +129,23 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
             payment_id = payment_data.get("id")
             unique_tx_id = f"{payment_id}_{event_type}" if payment_id else f"unknown_{event_type}"
 
-            # Map Razorpay's schema to FraudSignal's NormalizedTransaction
-            tx = NormalizedTransaction(
-                transaction_id=unique_tx_id,
-                merchant_id="live_merchant",
-                customer_id=payment_data.get("email", payment_data.get("contact", "unknown")),
-                amount=payment_data.get("amount", 0) / 100, # Razorpay sends paise
-                currency=payment_data.get("currency", "INR"),
-                timestamp=payment_data.get("created_at") or datetime.datetime.utcnow().isoformat(),
-                payment_method=payment_data.get("method", "unknown"),
-                device={"ip_address": payment_data.get("ip", "0.0.0.0")},
-                metadata=tx_metadata
-            )
+            try:
+                # Map Razorpay's schema to FraudSignal's NormalizedTransaction
+                # Fallbacks guarantee we don't pass `None` which would crash Pydantic validation
+                tx = NormalizedTransaction(
+                    transaction_id=unique_tx_id,
+                    merchant_id="live_merchant",
+                    customer_id=payment_data.get("email") or payment_data.get("contact") or "unknown_customer",
+                    amount=(payment_data.get("amount") or 0) / 100, # Razorpay sends paise
+                    currency=payment_data.get("currency") or "INR",
+                    timestamp=payment_data.get("created_at") or datetime.datetime.utcnow().isoformat(),
+                    payment_method=payment_data.get("method") or "unknown",
+                    device={"ip_address": payment_data.get("ip") or "0.0.0.0"},
+                    metadata=tx_metadata
+                )
+            except Exception as e:
+                logger.error(f"Validation Error creating NormalizedTransaction: {e}")
+                raise HTTPException(status_code=400, detail="Invalid payload schema mapping")
             
             # Wrapper to handle DuplicateKeyError for Idempotency
             async def safe_process_transaction(transaction: NormalizedTransaction):
