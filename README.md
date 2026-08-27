@@ -21,6 +21,16 @@
 
 ---
 
+## 🏆 Hackathon Track 02: AI Risk Manager
+
+FraudSignal directly tackles the core objective: **Stop the merchant from losing money to fraud and chargebacks.** 
+
+It features a working **Fraud-Spike Detector** (LightGBM) and an **Auto-Responder/Verifier** (Groq LLM). The entire system is strictly defense-only and was evaluated using honest, business-first metrics—including a comprehensive **False-Positive Cost Analysis**—measured against a strictly held-out test set.
+
+👉 **[Read the Full False-Positive Cost & Model Evaluation Report Here](MODEL_EVALUATION.md)**
+
+---
+
 ## 🚀 Overview
 
 FraudSignal is a **modern, microservices-based** fraud detection platform built for scaling e-commerce and fintech applications. It solves massive operational bottlenecks in payment processing:
