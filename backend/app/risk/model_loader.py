@@ -123,6 +123,19 @@ class FraudModelLoader:
         for i in range(1, 15):
             raw_features[f'V{i}'] = metadata.get(f'V{i}', 0)
             
+        # Safely force numeric casting for everything except categorical features
+        numeric_features = [
+            'TransactionAmt', 'LogTransactionAmt', 'hour', 'day', 'card1', 'card2', 'card3', 'card5', 
+            'addr1', 'addr2', 'dist1'
+        ] + [f'V{i}' for i in range(1, 15)] + [f'{col}_count' for col in ['card1', 'card2', 'addr1', 'P_emaildomain']]
+        
+        for feat in numeric_features:
+            if feat in raw_features:
+                try:
+                    raw_features[feat] = float(raw_features[feat])
+                except (ValueError, TypeError):
+                    raw_features[feat] = 0.0
+
         return raw_features
 
     def predict(self, transaction: Dict[str, Any]) -> Optional[float]:
