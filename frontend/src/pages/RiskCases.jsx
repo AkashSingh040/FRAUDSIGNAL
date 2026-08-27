@@ -129,7 +129,7 @@ const RiskCases = () => {
                       </span>
                     </td>
                     <td className="font-mono text-xs">
-                      {formatCurrency(c.metadata?.amount / 100 || 0)}
+                      {formatCurrency(c.evidence?.observed_amount || 0)}
                     </td>
                     <td className="text-xs text-muted">
                       {new Date(c.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}

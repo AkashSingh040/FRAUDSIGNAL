@@ -165,7 +165,7 @@ const Dashboard = () => {
                   recentCases.slice(0, 5).map(c => (
                     <tr key={c.case_id}>
                       <td className="font-mono text-xs">{c.transaction_id || 'pay_unknown'}</td>
-                      <td className="font-mono text-xs">{formatCurrency(c.metadata?.amount / 100 || 0)}</td>
+                      <td className="font-mono text-xs">{formatCurrency(c.evidence?.observed_amount || 0)}</td>
                       <td>
                         <span className={`font-mono font-bold ${getRiskColor(c.risk_score)}`}>
                           {c.risk_score}

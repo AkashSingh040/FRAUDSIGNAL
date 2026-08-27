@@ -231,7 +231,7 @@ const Investigation = () => {
             <div className="flex-col">
               <div className="detail-row">
                 <span className="detail-label">Amount</span>
-                <span className="detail-value font-mono">{formatCurrency(data.metadata?.amount / 100 || 0)}</span>
+                <span className="detail-value font-mono">{formatCurrency(data.evidence?.observed_amount || 0)}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Currency</span>
