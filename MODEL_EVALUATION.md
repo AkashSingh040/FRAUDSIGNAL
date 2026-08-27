@@ -1,6 +1,9 @@
-# Final M1 Readiness & Rigorous Validation Report
+<h1 align="center">
+  📊 Model Evaluation & Risk Analysis
+</h1>
+<h4 align="center">Final Readiness & Rigorous Validation Report (Track 02)</h4>
 
-Following a rigorous, unbiased Train / Validation / Test pipeline, the M1 LightGBM model was evaluated against strict production standards.
+Following a strict Train / Validation / Test pipeline, the FraudSignal LightGBM engine was evaluated against production standards to ensure zero data leakage and honest metric reporting.
 
 ## 1. Metrics at Threshold 0.60 (Test Set)
 - **ROC-AUC**: 0.8334
@@ -28,9 +31,12 @@ Transactions were sorted chronologically and split correctly to prevent data lea
 ## 5. False-Positive Cost Analysis (Track 02 Justification)
 In alignment with **Track 02 (AI Risk Manager)** criteria, we must evaluate our detector based on the *honest cost of false positives*. A purely ML-driven approach might choose a threshold maximizing the F1-score (e.g., Threshold 0.45 or 0.50), but an AI Risk Manager must optimize for business margin.
 
-**The Operational Cost Matrix:**
-- **True Positive (Fraud Caught):** Saves the merchant the transaction loss + a standard ₹1,500 chargeback fee. (Average Savings: **+₹6,500**)
-- **False Positive (Legit Blocked):** Costs the merchant the immediate profit margin + immense damage to Customer Lifetime Value (LTV) due to insult rate. (Average Cost: **-₹2,000**)
+**The Operational Cost Matrix (Financial Assumptions):**
+To calculate the true business impact, we model the financial unit economics of a standard e-commerce transaction with an Average Order Value (AOV) of ₹5,000:
+- **True Positive (Fraud Caught):** The merchant saves the loss of the ₹5,000 product/service *plus* avoids a standard ₹1,500 bank chargeback penalty fee. 
+  - **Net Savings:** **+₹6,500** per transaction.
+- **False Positive (Legit Customer Blocked):** The merchant loses the immediate profit margin on the ₹5,000 order (assuming a 10% margin = ₹500) *plus* damages the Customer Lifetime Value (LTV) due to the insult rate of a blocked card (estimated at ₹1,500). 
+  - **Net Cost:** **-₹2,000** per transaction.
 
 **Why Threshold 0.60 was Chosen over 0.10:**
 | Threshold | Fraud Caught (TP) | Savings (+₹6.5k) | Good Customers Blocked (FP) | FP Cost (-₹2k) | Net Business Impact |
