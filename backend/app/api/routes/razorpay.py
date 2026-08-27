@@ -138,7 +138,7 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
                     customer_id=payment_data.get("email") or payment_data.get("contact") or "unknown_customer",
                     amount=(payment_data.get("amount") or 0) / 100, # Razorpay sends paise
                     currency=payment_data.get("currency") or "INR",
-                    timestamp=payment_data.get("created_at") or datetime.datetime.utcnow().isoformat(),
+                    timestamp=str(payment_data.get("created_at")) if payment_data.get("created_at") else datetime.datetime.utcnow().isoformat(),
                     payment_method=payment_data.get("method") or "unknown",
                     device={"ip_address": payment_data.get("ip") or "0.0.0.0"},
                     metadata=tx_metadata
