@@ -12,8 +12,8 @@ Following a strict Train / Validation / Test pipeline, the FraudSignal LightGBM 
 - **Recall**: 29.35%
 - **F1 Score**: 28.40%
 - **False Positive Rate**: 2.79%
-- **Fraud transactions flagged (TP)**: ~904
-- **Legitimate transactions flagged (FP)**: ~2,387
+- **Fraud transactions flagged (True Positive)**: ~904
+- **Legitimate transactions flagged (False Positive)**: ~2,387
 
 ## 2. Threshold Selection Validation
 > **PASS**: The data-driven optimized operating threshold selected strictly on the Validation set is **0.60**. All final metrics reported here are from the completely untouched Test set (88,580 transactions).
