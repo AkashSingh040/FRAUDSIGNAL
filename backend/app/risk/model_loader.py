@@ -48,7 +48,7 @@ class FraudModelLoader:
                 self.is_loaded = True
                 logger.info(f"Loaded Fraud Model: {self.metadata.get('model_name')} {self.metadata.get('model_version')} | Threshold: {self.optimal_threshold}")
             except Exception as e:
-                logger.error(f"Failed to load model: {e}")
+                logger.error(f"Failed to load model: {e}", exc_info=True)
         else:
             logger.warning("Model artifacts not found. Operating in RULES-ONLY mode.")
 
