@@ -65,6 +65,20 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
         payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
         
         if payment_data:
+            # Base metadata mapped from Razorpay
+            tx_metadata = {
+                "card_network": payment_data.get("card", {}).get("network"),
+                "card_type": payment_data.get("card", {}).get("type"),
+                "card_brand": payment_data.get("card", {}).get("issuer"),
+                "email_domain": payment_data.get("email", "").split("@")[-1] if "@" in payment_data.get("email", "") else "missing"
+            }
+            
+            # Merge any custom 'notes' passed in the Razorpay transaction
+            # This allows merchants (or our testing script) to pass IP location, velocity flags, etc.
+            notes = payment_data.get("notes", {})
+            if isinstance(notes, dict):
+                tx_metadata.update(notes)
+
             # Map Razorpay's schema to FraudSignal's NormalizedTransaction
             tx = NormalizedTransaction(
                 transaction_id=payment_data.get("id"),
@@ -75,12 +89,7 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
                 timestamp=datetime.datetime.utcnow().isoformat(),
                 payment_method=payment_data.get("method", "unknown"),
                 device={"ip_address": payment_data.get("ip", "0.0.0.0")},
-                metadata={
-                    "card_network": payment_data.get("card", {}).get("network"),
-                    "card_type": payment_data.get("card", {}).get("type"),
-                    "card_brand": payment_data.get("card", {}).get("issuer"),
-                    "email_domain": payment_data.get("email", "").split("@")[-1] if "@" in payment_data.get("email", "") else "missing"
-                }
+                metadata=tx_metadata
             )
             
             # Fire and forget processing so we respond to Razorpay within 200ms
