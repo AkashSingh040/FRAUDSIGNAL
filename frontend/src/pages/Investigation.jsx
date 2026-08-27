@@ -99,14 +99,6 @@ const Investigation = () => {
               <h2 className="card-title flex items-center gap-2">
                 <BrainCircuit size={18} className="text-primary" /> Groq AI Intelligence Report
               </h2>
-              {inv.recommended_action && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-muted">AI ACTION:</span>
-                  <span className={`badge ${inv.recommended_action === 'BLOCK' ? 'badge-high' : inv.recommended_action === 'MONITOR' ? 'badge-medium' : 'badge-low'}`}>
-                    {inv.recommended_action}
-                  </span>
-                </div>
-              )}
             </div>
             
             <div className="flex-col gap-6">
@@ -199,7 +191,11 @@ const Investigation = () => {
                 </div>
                 <div className="detail-row py-2 border-b border-color">
                   <span className="detail-label">Fraud Probability</span>
-                  <span className="detail-value font-mono text-xs text-warning">{(data.risk_score / 100).toFixed(4)}</span>
+                  <span className="detail-value font-mono text-xs text-warning">
+                    {data.evidence?.model_prob != null
+                      ? Number(data.evidence.model_prob).toFixed(4)
+                      : 'N/A'}
+                  </span>
                 </div>
                 <div className="detail-row py-2 border-b border-color">
                   <span className="detail-label">Decision Threshold</span>
@@ -222,11 +218,36 @@ const Investigation = () => {
           <div className="card flex-col">
             <h2 className="card-title mb-4">Investigation Actions</h2>
 
+            {inv.recommended_action && (
+              <div className="flex items-center justify-between p-3 rounded border border-color bg-base mb-4">
+                <span className="text-xs font-bold text-muted uppercase tracking-wider">AI ACTION:</span>
+                <span className={`badge ${
+                  inv.recommended_action === 'BLOCK' ? 'badge-high' :
+                  inv.recommended_action === 'MONITOR' ? 'badge-medium' : 'badge-low'
+                }`}>
+                  {inv.recommended_action}
+                </span>
+              </div>
+            )}
+
             {isResolved ? (
-              <div className="p-4 rounded border border-color text-center bg-base">
-                <div className="text-xs text-muted mb-2 tracking-wider uppercase">Final Decision Applied</div>
-                <div className={`font-bold ${finalDecisionColor} flex items-center justify-center gap-2 text-lg`}>
-                  {finalDecisionIcon} {data.final_decision}
+              <div className="flex-col gap-3">
+                {inv.recommended_action && (
+                  <div className="p-3 rounded border border-color bg-base">
+                    <div className="text-xs text-muted mb-1 tracking-wider uppercase">AI Recommended Action</div>
+                    <div className={`font-semibold text-sm flex items-center gap-2 ${
+                      inv.recommended_action === 'BLOCK' ? 'text-danger' :
+                      inv.recommended_action === 'MONITOR' ? 'text-warning' : 'text-success'
+                    }`}>
+                      {inv.recommended_action}
+                    </div>
+                  </div>
+                )}
+                <div className="p-4 rounded border border-color text-center bg-base">
+                  <div className="text-xs text-muted mb-2 tracking-wider uppercase">Analyst Final Decision</div>
+                  <div className={`font-bold ${finalDecisionColor} flex items-center justify-center gap-2 text-lg`}>
+                    {finalDecisionIcon} {data.final_decision ?? '—'}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -283,7 +304,7 @@ const Investigation = () => {
               {showRawJson && (
                 <div className="mt-3 p-3 bg-black border border-color rounded overflow-x-auto">
                   <pre className="text-[10px] font-mono text-muted m-0">
-                    {JSON.stringify(data.metadata || data.evidence, null, 2)}
+                    {JSON.stringify(data.evidence, null, 2)}
                   </pre>
                 </div>
               )}
