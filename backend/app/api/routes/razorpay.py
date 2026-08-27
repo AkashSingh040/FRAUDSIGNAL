@@ -51,13 +51,39 @@ async def simulate_webhook(amount: int = 50000, event_type: str = "payment.captu
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/webhook")
-async def razorpay_webhook(request: Request):
+async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
     """
-    Actual Razorpay webhook endpoint (stub).
-    In production, you'd verify `x-razorpay-signature` here.
+    Actual Razorpay webhook endpoint.
+    In production, verify `x-razorpay-signature` against RAZORPAY_WEBHOOK_SECRET.
     """
     payload = await request.json()
-    # Signature verification logic goes here...
     
-    # Normally, we'd enqueue this or process it similarly to simulate_webhook
+    # Typically we check the event type, e.g. "payment.captured" or "payment.authorized"
+    event_type = payload.get("event", "")
+    
+    if event_type.startswith("payment.") or event_type.startswith("order."):
+        payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
+        
+        if payment_data:
+            # Map Razorpay's schema to FraudSignal's NormalizedTransaction
+            tx = NormalizedTransaction(
+                transaction_id=payment_data.get("id"),
+                merchant_id="live_merchant",
+                customer_id=payment_data.get("email", payment_data.get("contact", "unknown")),
+                amount=payment_data.get("amount", 0) / 100, # Razorpay sends paise
+                currency=payment_data.get("currency", "INR"),
+                timestamp=datetime.datetime.utcnow().isoformat(),
+                payment_method=payment_data.get("method", "unknown"),
+                device={"ip_address": payment_data.get("ip", "0.0.0.0")},
+                metadata={
+                    "card_network": payment_data.get("card", {}).get("network"),
+                    "card_type": payment_data.get("card", {}).get("type"),
+                    "card_brand": payment_data.get("card", {}).get("issuer"),
+                    "email_domain": payment_data.get("email", "").split("@")[-1] if "@" in payment_data.get("email", "") else "missing"
+                }
+            )
+            
+            # Fire and forget processing so we respond to Razorpay within 200ms
+            background_tasks.add_task(process_transaction, tx)
+            
     return {"status": "ok"}
