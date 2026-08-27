@@ -1,0 +1,14 @@
+{
+  "model_name": "FraudSignal-M1-LightGBM",
+  "model_version": "v1.2-rigorous",
+  "dataset": "IEEE-CIS Fraud Detection",
+  "trained_at": "2026-08-26T20:43:42.998967",
+  "roc_auc": 0.8334120628262491,
+  "pr_auc": 0.21773386112185245,
+  "selected_threshold": 0.6000000000000001,
+  "precision": 0.2749924035247645,
+  "recall": 0.2935452481349335,
+  "f1": 0.2839661123313461,
+  "feature_count": 34,
+  "model_type": "LightGBM"
+}

@@ -38,8 +38,7 @@ data/processed/*
 !data/processed/.gitkeep
 
 # ML Models
-ml/artifacts/*
-!ml/artifacts/.gitkeep
+
 
 # IDE
 .idea/
