@@ -97,7 +97,9 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
         return {"status": "ok"}
         
     # 2. Process actual payment events
-    if event_type in ["payment.authorized", "payment.captured", "payment.failed"]:
+    # We ignore payment.authorized because payment.captured fires immediately after for auto-capture.
+    # Processing both results in duplicate cases on the dashboard.
+    if event_type in ["payment.captured", "payment.failed"]:
         payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
         
         if payment_data:
@@ -125,9 +127,12 @@ async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
             if isinstance(notes, dict):
                 tx_metadata.update(notes)
 
-            # Build a unique ID for idempotency: payment_id + event_type
+            # Build a unique ID for idempotency
+            # By using the raw payment_id, MongoDB's unique index will block duplicates 
+            # and our DuplicateKeyError try/except will safely ignore them!
             payment_id = payment_data.get("id")
-            unique_tx_id = f"{payment_id}_{event_type}" if payment_id else f"unknown_{event_type}"
+            import time
+            unique_tx_id = payment_id if payment_id else f"unknown_{event_type}_{int(time.time())}"
 
             try:
                 # Map Razorpay's schema to FraudSignal's NormalizedTransaction
