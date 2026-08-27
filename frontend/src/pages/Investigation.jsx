@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { casesApi } from '../services/api';
-import { AlertTriangle, CheckCircle, Clock, ShieldBan, ArrowLeft, BrainCircuit, Info, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, ShieldBan, ArrowLeft, BrainCircuit, Info, Zap, XCircle, FileJson, Crosshair } from 'lucide-react';
 
 const Investigation = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showRawJson, setShowRawJson] = useState(false);
 
   useEffect(() => {
     casesApi.get(caseId)
@@ -46,6 +47,17 @@ const Investigation = () => {
   const inv = data.investigation || {};
   const isResolved = data.status === "RESOLVED" || data.status === "CONFIRMED_FRAUD" || data.status === "FALSE_POSITIVE";
 
+  // Determine final decision badge styling
+  let finalDecisionIcon = <CheckCircle size={16} />;
+  let finalDecisionColor = 'text-success';
+  if (data.final_decision === 'BLOCK') {
+    finalDecisionIcon = <ShieldBan size={16} />;
+    finalDecisionColor = 'text-danger';
+  } else if (data.final_decision === 'MONITOR') {
+    finalDecisionIcon = <Clock size={16} />;
+    finalDecisionColor = 'text-warning';
+  }
+
   return (
     <div className="flex-col gap-4 pb-12">
       <Link to="/cases" className="flex items-center text-sm font-semibold text-muted mb-2 transition hover:text-primary">
@@ -83,13 +95,25 @@ const Investigation = () => {
           
           {/* AI Investigation Report */}
           <div className="card" style={{ borderTop: '3px solid var(--primary)' }}>
-            <h2 className="card-title mb-4 flex items-center gap-2">
-              <BrainCircuit size={18} className="text-primary" /> Groq AI Intelligence Report
-            </h2>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="card-title flex items-center gap-2">
+                <BrainCircuit size={18} className="text-primary" /> Groq AI Intelligence Report
+              </h2>
+              {inv.recommended_action && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted">AI ACTION:</span>
+                  <span className={`badge ${inv.recommended_action === 'BLOCK' ? 'badge-high' : inv.recommended_action === 'MONITOR' ? 'badge-medium' : 'badge-low'}`}>
+                    {inv.recommended_action}
+                  </span>
+                </div>
+              )}
+            </div>
             
             <div className="flex-col gap-6">
-              <div>
-                <div className="text-xs font-bold text-muted mb-2">SUMMARY</div>
+              <div className="p-4 rounded bg-base border border-color">
+                <div className="text-xs font-bold text-muted mb-2 uppercase tracking-wider flex items-center gap-2">
+                  <Info size={14} className="text-primary" /> Executive Summary
+                </div>
                 <div className="text-sm font-medium leading-relaxed">
                   {inv.summary || "No AI summary generated for this case."}
                 </div>
@@ -97,12 +121,12 @@ const Investigation = () => {
 
               <div className="grid-2">
                 <div>
-                  <div className="text-xs font-bold text-muted mb-2">EVIDENCE</div>
-                  <div className="evidence-list">
+                  <div className="text-xs font-bold text-muted mb-3 uppercase tracking-wider">Factual Evidence</div>
+                  <div className="flex-col gap-2">
                     {(inv.evidence || []).map((e, i) => (
-                      <div key={i} className="evidence-item info flex items-start gap-2">
-                        <CheckCircle size={14} className="text-primary mt-0.5 flex-shrink-0" />
-                        <span>{e}</span>
+                      <div key={i} className="p-3 text-sm rounded log-block-evidence flex items-start gap-3">
+                        <Crosshair size={14} className="text-primary mt-0-5 flex-shrink-0" />
+                        <span className="leading-tight">{e}</span>
                       </div>
                     ))}
                     {(!inv.evidence || inv.evidence.length === 0) && <div className="text-xs text-muted">None documented.</div>}
@@ -110,12 +134,12 @@ const Investigation = () => {
                 </div>
 
                 <div>
-                  <div className="text-xs font-bold text-muted mb-2">REASONING</div>
-                  <div className="evidence-list">
+                  <div className="text-xs font-bold text-muted mb-3 uppercase tracking-wider">Logical Reasoning</div>
+                  <div className="flex-col gap-2">
                     {(inv.reasoning || []).map((r, i) => (
-                      <div key={i} className="evidence-item flex items-start gap-2">
-                        <Info size={14} className="text-warning mt-0.5 flex-shrink-0" />
-                        <span>{r}</span>
+                      <div key={i} className="p-3 text-sm rounded log-block-reasoning flex items-start gap-3">
+                        <Info size={14} className="text-warning mt-0-5 flex-shrink-0" />
+                        <span className="leading-tight">{r}</span>
                       </div>
                     ))}
                     {(!inv.reasoning || inv.reasoning.length === 0) && <div className="text-xs text-muted">None documented.</div>}
@@ -124,13 +148,15 @@ const Investigation = () => {
               </div>
 
               {inv.uncertainties && inv.uncertainties.length > 0 && (
-                <div>
-                  <div className="text-xs font-bold text-muted mb-2">UNCERTAINTIES & RISK VECTORS</div>
-                  <div className="evidence-list">
+                <div className="p-4 rounded log-block-danger">
+                  <div className="text-xs font-bold text-danger mb-2 uppercase tracking-wider flex items-center gap-2">
+                    <AlertTriangle size={14} /> Uncertainties & Risk Vectors
+                  </div>
+                  <div className="flex-col gap-2">
                     {inv.uncertainties.map((u, i) => (
-                      <div key={i} className="evidence-item critical flex items-start gap-2">
-                        <AlertTriangle size={14} className="text-danger mt-0.5 flex-shrink-0" /> 
-                        <span className="font-medium text-danger">{u}</span>
+                      <div key={i} className="flex items-start gap-2 text-sm text-danger">
+                        <span className="mt-1 flex-shrink-0 w-1-5 h-1-5 rounded-full bg-danger"></span>
+                        <span>{u}</span>
                       </div>
                     ))}
                   </div>
@@ -141,47 +167,47 @@ const Investigation = () => {
 
           {/* Model Metrics */}
           <div className="grid-2 gap-4">
-            <div className="card">
+            <div className="card h-full">
               <h2 className="card-title mb-4 flex items-center gap-2">
-                <Zap size={16} className="text-warning" /> Risk Signals
+                <Zap size={16} className="text-warning" /> LightGBM Telemetry
               </h2>
-              <div className="flex-col gap-2">
+              <div className="flex-col gap-3">
                 {data.signals && data.signals.length > 0 ? (
                   data.signals.map(s => (
-                    <div key={s.signal_id} className="flex justify-between items-center py-2 border-b border-[var(--border-color)] last:border-0">
-                      <div>
+                    <div key={s.signal_id} className="p-3 rounded bg-base border border-color">
+                      <div className="flex justify-between items-start mb-1">
                         <div className="font-semibold text-sm">{s.title}</div>
-                        <div className="text-xs text-muted">{s.description}</div>
+                        <span className={`badge ${s.severity === 'HIGH' ? 'badge-high' : 'badge-medium'}`}>
+                          {s.severity}
+                        </span>
                       </div>
-                      <span className={`badge ${s.severity === 'HIGH' ? 'badge-high' : 'badge-medium'}`}>
-                        {s.severity}
-                      </span>
+                      <div className="text-xs text-muted leading-relaxed">{s.description}</div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-xs text-muted">No explicit risk signals triggered.</div>
+                  <div className="text-xs text-muted p-3 border border-dashed border-color rounded text-center">No explicit telemetry thresholds breached.</div>
                 )}
               </div>
             </div>
 
-            <div className="card">
-              <h2 className="card-title mb-4">Model Decision</h2>
-              <div className="flex-col gap-2">
-                <div className="detail-row">
+            <div className="card h-full flex flex-col">
+              <h2 className="card-title mb-4">Detection Engine Specs</h2>
+              <div className="flex-col gap-3 flex-1 justify-center">
+                <div className="detail-row py-2 border-b border-color">
                   <span className="detail-label">Model Engine</span>
                   <span className="detail-value font-mono text-xs">LightGBM (IEEE-CIS)</span>
                 </div>
-                <div className="detail-row">
+                <div className="detail-row py-2 border-b border-color">
                   <span className="detail-label">Fraud Probability</span>
-                  <span className="detail-value font-mono text-xs">{(data.risk_score / 100).toFixed(4)}</span>
+                  <span className="detail-value font-mono text-xs text-warning">{(data.risk_score / 100).toFixed(4)}</span>
                 </div>
-                <div className="detail-row">
+                <div className="detail-row py-2 border-b border-color">
                   <span className="detail-label">Decision Threshold</span>
-                  <span className="detail-value font-mono text-xs">0.3000 (Medium)</span>
+                  <span className="detail-value font-mono text-xs">0.6000 (Optimized)</span>
                 </div>
-                <div className="detail-row">
+                <div className="detail-row py-2">
                   <span className="detail-label">LLM Investigator</span>
-                  <span className="detail-value font-mono text-xs">Groq Llama-3-8b</span>
+                  <span className="detail-value font-mono text-xs text-primary">Groq Llama-3-8b</span>
                 </div>
               </div>
             </div>
@@ -195,19 +221,12 @@ const Investigation = () => {
           {/* Action Panel */}
           <div className="card flex-col">
             <h2 className="card-title mb-4">Investigation Actions</h2>
-            
-            <div className="mb-6 p-4 rounded bg-[var(--bg-base)] border border-[var(--border-color)]">
-              <div className="text-xs font-bold text-muted mb-2">AI RECOMMENDED ACTION</div>
-              <div className="font-bold font-mono text-lg" style={{ color: inv.recommended_action === 'BLOCK' ? 'var(--danger)' : 'var(--primary)' }}>
-                {inv.recommended_action || "UNKNOWN"}
-              </div>
-            </div>
 
             {isResolved ? (
-              <div className="p-4 rounded border border-[var(--border-color)] text-center">
-                <div className="text-xs text-muted mb-1">FINAL DECISION</div>
-                <div className="font-bold text-success flex items-center justify-center gap-2">
-                  <CheckCircle size={16} /> {data.final_decision}
+              <div className="p-4 rounded border border-color text-center bg-base">
+                <div className="text-xs text-muted mb-2 tracking-wider uppercase">Final Decision Applied</div>
+                <div className={`font-bold ${finalDecisionColor} flex items-center justify-center gap-2 text-lg`}>
+                  {finalDecisionIcon} {data.final_decision}
                 </div>
               </div>
             ) : (
@@ -243,10 +262,31 @@ const Investigation = () => {
               </div>
               <div className="detail-row flex-col gap-1" style={{ alignItems: 'flex-start' }}>
                 <span className="detail-label">Razorpay Event</span>
-                <span className="detail-value font-mono text-xs break-all bg-[var(--bg-base)] p-2 rounded w-full border border-[var(--border-color)]">
+                <span className="detail-value font-mono text-xs break-all bg-base p-2 rounded w-full border border-color">
                   payment.captured
                 </span>
               </div>
+            </div>
+            
+            {/* Raw JSON Viewer */}
+            <div className="mt-4 pt-4 border-t border-color">
+              <button 
+                onClick={() => setShowRawJson(!showRawJson)} 
+                className="flex items-center justify-between w-full text-xs font-bold text-muted hover:text-primary transition-colors uppercase tracking-wider"
+              >
+                <div className="flex items-center gap-2">
+                  <FileJson size={14} /> View Raw Payload
+                </div>
+                <span>{showRawJson ? '-' : '+'}</span>
+              </button>
+              
+              {showRawJson && (
+                <div className="mt-3 p-3 bg-black border border-color rounded overflow-x-auto">
+                  <pre className="text-[10px] font-mono text-muted m-0">
+                    {JSON.stringify(data.metadata || data.evidence, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
 

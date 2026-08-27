@@ -1,0 +1,1 @@
+import sys; import os; sys.path.insert(0, os.path.abspath("backend")); from app.services.llm_service import llm_service; print(llm_service.investigate({"risk_score": 95, "signals": [{"title": "test", "description": "test"}]}))

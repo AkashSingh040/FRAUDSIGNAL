@@ -50,32 +50,34 @@ class LLMService:
             return self._deterministic_fallback(case_context)
             
         system_prompt = """
-        You are an expert fraud risk investigator. Analyze the provided transaction and risk signals.
-        Return a JSON object matching this schema:
+        You are an elite forensic fraud risk investigator. You are analyzing a transaction payload that has been flagged by our ML engine.
+        Your job is to provide a highly detailed, transaction-specific investigation report. DO NOT use generic boilerplate language. 
+        You MUST explicitly reference the exact values from the JSON context provided (e.g., mention the specific transaction amount, the actual email domain, or the exact card brand).
+        
+        Return a JSON object strictly matching this schema:
         {
-            "summary": "Short paragraph summary",
-            "risk_assessment": "Detailed interpretation of the risk",
-            "evidence": ["list of factual evidence"],
-            "reasoning": ["list of logical deductions"],
-            "uncertainties": ["list of things that cannot be concluded"],
+            "summary": "A 2-3 sentence forensic summary of exactly what looks suspicious about this specific transaction.",
+            "risk_assessment": "A detailed interpretation of the risk score in relation to the specific signals triggered.",
+            "evidence": ["Factual evidence point 1 referencing specific data...", "Factual evidence point 2..."],
+            "reasoning": ["Logical deduction 1 based on the evidence...", "Logical deduction 2..."],
+            "uncertainties": ["List any missing data points that prevent a 100% confident conclusion (e.g., 'Device fingerprint is absent')."],
             "recommended_action": "APPROVE" | "MONITOR" | "MANUAL_REVIEW" | "BLOCK",
-            "confidence": 0.0 to 1.0
+            "confidence": 0.0 to 1.0 (float)
         }
-        Base everything ONLY on the provided context. Do not invent evidence.
+        Base everything ONLY on the provided context.
         """
         
         try:
             response = self.client.chat.completions.create(
-                model="openai/gpt-oss-120b",
+                model=settings.LLM_MODEL or "llama3-8b-8192",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": json.dumps(case_context, default=str)}
                 ],
                 response_format={"type": "json_object"},
-                temperature=1,
+                temperature=0.2,
                 max_completion_tokens=2048,
-                top_p=1,
-                reasoning_effort="medium",
+                top_p=0.9,
                 stream=True
             )
             
