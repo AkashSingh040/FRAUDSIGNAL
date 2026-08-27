@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from app.schemas.models import NormalizedTransaction, RiskAssessment, RiskCase, CaseStatus
 from app.risk.rules import evaluate_risk
@@ -17,8 +17,15 @@ async def process_transaction(tx: NormalizedTransaction) -> RiskCase:
     # 2. Get Model Probability
     prob = model_loader.predict(tx_dict)
     
-    # 3. Evaluate Risk (Rules + Model)
-    assessment = evaluate_risk(tx, prob)
+    # 3. Compute real velocity from DB — count customer's transactions in the last 60 min
+    one_hour_ago = (datetime.utcnow() - timedelta(hours=1)).isoformat()
+    velocity_count = await db.transactions.count_documents({
+        "customer_id": tx.customer_id,
+        "timestamp": {"$gte": one_hour_ago}
+    })
+    
+    # 4. Evaluate Risk (Rules + Model)
+    assessment = evaluate_risk(tx, prob, velocity_count=velocity_count)
     
     # 4. Save Signals
     for sig in assessment["signals"]:

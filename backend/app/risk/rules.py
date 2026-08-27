@@ -2,11 +2,13 @@ from typing import List, Dict, Any
 from app.schemas.models import NormalizedTransaction, RiskSignal
 import uuid
 
-def generate_signals(tx: NormalizedTransaction) -> List[RiskSignal]:
+VELOCITY_THRESHOLD = 3  # max transactions allowed per customer per hour
+
+def generate_signals(tx: NormalizedTransaction, velocity_count: int = 0) -> List[RiskSignal]:
     signals = []
     
     # 1. Amount Anomaly
-    if tx.amount > 50000:
+    if tx.amount >= 50000:
         signals.append(RiskSignal(
             signal_id="UNUSUAL_AMOUNT",
             title="Unusually high transaction amount",
@@ -27,31 +29,32 @@ def generate_signals(tx: NormalizedTransaction) -> List[RiskSignal]:
             confidence=0.7
         ))
 
-    # 2. Velocity / Behavior Simulation (Normally relies on DB history)
-    # For hackathon simulator, we read metadata hints if provided, else dummy
-    if tx.metadata and tx.metadata.get("is_high_velocity"):
+    # 2. Velocity — uses real DB count passed from risk_service, not caller-supplied metadata
+    if velocity_count > VELOCITY_THRESHOLD:
         signals.append(RiskSignal(
             signal_id="HIGH_VELOCITY",
             title="High transaction velocity",
             severity="HIGH",
-            description="Multiple transactions detected in a short time frame.",
-            evidence={"transactions_last_hour": tx.metadata.get("tx_count_1h", 5)},
+            description=f"Customer made {velocity_count} transactions in the last hour (threshold: {VELOCITY_THRESHOLD}).",
+            evidence={"transactions_last_hour": velocity_count, "threshold": VELOCITY_THRESHOLD},
             source="derived",
             confidence=0.85
         ))
         
-    # 3. Device / Location
-    if tx.device and tx.device.ip_address and tx.metadata and tx.metadata.get("expected_country"):
-        if tx.metadata.get("ip_country") != tx.metadata.get("expected_country"):
+    # 3. Device / Location — both ip_country AND expected_country must be present and non-null
+    if tx.device and tx.device.ip_address and tx.metadata:
+        ip_country = tx.metadata.get("ip_country")
+        expected_country = tx.metadata.get("expected_country")
+        if ip_country and expected_country and ip_country != expected_country:
             signals.append(RiskSignal(
                 signal_id="LOCATION_MISMATCH",
                 title="Geographic location mismatch",
                 severity="HIGH",
-                description="IP address location does not match expected customer location.",
+                description=f"IP country ({ip_country}) does not match expected customer country ({expected_country}).",
                 evidence={
-                    "ip_address": tx.device.ip_address, 
-                    "ip_country": tx.metadata.get("ip_country"),
-                    "expected": tx.metadata.get("expected_country")
+                    "ip_address": tx.device.ip_address,
+                    "ip_country": ip_country,
+                    "expected": expected_country
                 },
                 source="derived",
                 confidence=0.95
@@ -59,8 +62,8 @@ def generate_signals(tx: NormalizedTransaction) -> List[RiskSignal]:
 
     return signals
 
-def evaluate_risk(tx: NormalizedTransaction, model_prob: float = None) -> Dict[str, Any]:
-    signals = generate_signals(tx)
+def evaluate_risk(tx: NormalizedTransaction, model_prob: float = None, velocity_count: int = 0) -> Dict[str, Any]:
+    signals = generate_signals(tx, velocity_count=velocity_count)
     
     # Calculate base risk from rules
     score = 0

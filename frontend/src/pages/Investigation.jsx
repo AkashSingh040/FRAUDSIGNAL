@@ -173,7 +173,31 @@ const Investigation = () => {
                           {s.severity}
                         </span>
                       </div>
-                      <div className="text-xs text-muted leading-relaxed">{s.description}</div>
+                      <div className="text-xs text-muted leading-relaxed mb-2">{s.description}</div>
+
+                      {/* Evidence rendering */}
+                      {s.signal_id === 'LOCATION_MISMATCH' && s.evidence && (
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <span className="text-xs text-muted">Detected:</span>
+                          <span className="font-mono text-xs px-2 py-0-5 rounded bg-danger text-danger border border-color font-bold">
+                            {s.evidence.ip_country ?? '—'}
+                          </span>
+                          <span className="text-xs text-muted">→ Expected:</span>
+                          <span className="font-mono text-xs px-2 py-0-5 rounded bg-success text-success border border-color font-bold">
+                            {s.evidence.expected ?? '—'}
+                          </span>
+                        </div>
+                      )}
+
+                      {s.signal_id !== 'LOCATION_MISMATCH' && s.evidence && Object.keys(s.evidence).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {Object.entries(s.evidence).map(([k, v]) => (
+                            <span key={k} className="font-mono text-[10px] px-2 py-0-5 rounded bg-base border border-color text-muted">
+                              {k}: <span className="text-primary">{String(v)}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
