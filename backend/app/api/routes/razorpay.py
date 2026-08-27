@@ -50,49 +50,110 @@ async def simulate_webhook(amount: int = 50000, event_type: str = "payment.captu
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+import hmac
+import hashlib
+import os
+import json
+import logging
+from pymongo.errors import DuplicateKeyError
+
+logger = logging.getLogger(__name__)
+
 @router.post("/webhook")
 async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Actual Razorpay webhook endpoint.
-    In production, verify `x-razorpay-signature` against RAZORPAY_WEBHOOK_SECRET.
+    Verifies `x-razorpay-signature` against RAZORPAY_WEBHOOK_SECRET.
     """
-    payload = await request.json()
-    
-    # Typically we check the event type, e.g. "payment.captured" or "payment.authorized"
+    body = await request.body()
+    signature = request.headers.get("x-razorpay-signature")
+    webhook_secret = os.getenv("RAZORPAY_WEBHOOK_SECRET")
+
+    if not signature or not webhook_secret:
+        logger.warning("Missing signature or webhook secret.")
+        raise HTTPException(status_code=400, detail="Missing signature or secret")
+
+    # Verify signature
+    expected_sig = hmac.new(
+        webhook_secret.encode('utf-8'),
+        body,
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(expected_sig, signature):
+        logger.warning("Invalid Razorpay signature.")
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    try:
+        payload = json.loads(body.decode('utf-8'))
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Malformed payload")
+        
     event_type = payload.get("event", "")
     
-    if event_type.startswith("payment.") or event_type.startswith("order."):
+    # 1. Acknowledge order.created but do not process as payment
+    if event_type == "order.created":
+        logger.info("Received order.created. Acknowledging safely.")
+        return {"status": "ok"}
+        
+    # 2. Process actual payment events
+    if event_type in ["payment.authorized", "payment.captured", "payment.failed"]:
         payment_data = payload.get("payload", {}).get("payment", {}).get("entity", {})
         
         if payment_data:
             # Base metadata mapped from Razorpay
             tx_metadata = {
+                "razorpay_event": event_type,
+                "order_id": payment_data.get("order_id"),
+                "payment_status": payment_data.get("status"),
                 "card_network": payment_data.get("card", {}).get("network"),
                 "card_type": payment_data.get("card", {}).get("type"),
                 "card_brand": payment_data.get("card", {}).get("issuer"),
                 "email_domain": payment_data.get("email", "").split("@")[-1] if "@" in payment_data.get("email", "") else "missing"
             }
             
+            # Extract additional nested entities safely if they exist
+            if payment_data.get("wallet"):
+                tx_metadata["wallet"] = payment_data.get("wallet")
+            if payment_data.get("bank"):
+                tx_metadata["bank"] = payment_data.get("bank")
+            if payment_data.get("vpa"):
+                tx_metadata["vpa"] = payment_data.get("vpa")
+            
             # Merge any custom 'notes' passed in the Razorpay transaction
-            # This allows merchants (or our testing script) to pass IP location, velocity flags, etc.
             notes = payment_data.get("notes", {})
             if isinstance(notes, dict):
                 tx_metadata.update(notes)
 
+            # Build a unique ID for idempotency: payment_id + event_type
+            payment_id = payment_data.get("id")
+            unique_tx_id = f"{payment_id}_{event_type}" if payment_id else f"unknown_{event_type}"
+
             # Map Razorpay's schema to FraudSignal's NormalizedTransaction
             tx = NormalizedTransaction(
-                transaction_id=payment_data.get("id"),
+                transaction_id=unique_tx_id,
                 merchant_id="live_merchant",
                 customer_id=payment_data.get("email", payment_data.get("contact", "unknown")),
                 amount=payment_data.get("amount", 0) / 100, # Razorpay sends paise
                 currency=payment_data.get("currency", "INR"),
-                timestamp=datetime.datetime.utcnow().isoformat(),
+                timestamp=payment_data.get("created_at") or datetime.datetime.utcnow().isoformat(),
                 payment_method=payment_data.get("method", "unknown"),
                 device={"ip_address": payment_data.get("ip", "0.0.0.0")},
                 metadata=tx_metadata
             )
             
+            # Wrapper to handle DuplicateKeyError for Idempotency
+            async def safe_process_transaction(transaction: NormalizedTransaction):
+                try:
+                    logger.info(f"Processing webhook event: {event_type} for Payment ID: {payment_id}")
+                    await process_transaction(transaction)
+                    logger.info(f"Fraud processing completed for {payment_id}")
+                except DuplicateKeyError:
+                    logger.warning(f"Duplicate transaction ignored: {transaction.transaction_id}")
+                except Exception as e:
+                    logger.error(f"Error processing transaction: {str(e)}")
+
             # Fire and forget processing so we respond to Razorpay within 200ms
-            background_tasks.add_task(process_transaction, tx)
+            background_tasks.add_task(safe_process_transaction, tx)
             
     return {"status": "ok"}
