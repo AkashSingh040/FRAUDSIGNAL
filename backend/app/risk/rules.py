@@ -108,6 +108,16 @@ def evaluate_risk(tx: NormalizedTransaction, model_prob: float = None, velocity_
         # Rules only
         final_score = min(score, 100)
 
+    # Signal-based floor: the ML model must not bury cases with real observable signals.
+    # If HIGH signals fired, the score must be at least MEDIUM (30) so analysts can act.
+    # If only MEDIUM signals fired, score must be at least 15.
+    has_high  = any(s.severity == "HIGH"   for s in signals if s.source != "model")
+    has_medium = any(s.severity == "MEDIUM" for s in signals if s.source != "model")
+    if has_high and final_score < 30:
+        final_score = 30
+    elif has_medium and final_score < 15:
+        final_score = 15
+
     # Determine level and decision
     if final_score >= 70:
         level = "HIGH"

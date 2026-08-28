@@ -33,9 +33,10 @@ async def process_transaction(tx: NormalizedTransaction) -> RiskCase:
         sig_dict["transaction_id"] = tx.transaction_id
         await db.risk_signals.insert_one(sig_dict)
         
-    # 5. Generate Investigation if suspicious
+    # 5. Generate Investigation if suspicious (score >= 30 OR any HIGH signal present)
     investigation = None
-    if assessment["risk_score"] >= 30:
+    has_high_signal = any(s.severity == "HIGH" for s in assessment["signals"])
+    if assessment["risk_score"] >= 30 or has_high_signal:
         case_context = {
             "transaction": tx_dict,
             "risk_score": assessment["risk_score"],
@@ -56,7 +57,7 @@ async def process_transaction(tx: NormalizedTransaction) -> RiskCase:
         signals=assessment["signals"],
         evidence={"observed_amount": tx.amount, "model_prob": prob},
         investigation=investigation,
-        status=CaseStatus.OPEN if assessment["risk_score"] >= 30 else CaseStatus.RESOLVED,
+        status=CaseStatus.OPEN if (assessment["risk_score"] >= 30 or has_high_signal) else CaseStatus.RESOLVED,
         recommended_action=investigation.recommended_action if investigation else None,
         created_at=datetime.utcnow().isoformat(),
         updated_at=datetime.utcnow().isoformat()
