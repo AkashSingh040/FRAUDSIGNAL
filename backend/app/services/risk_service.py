@@ -43,7 +43,7 @@ async def process_transaction(tx: NormalizedTransaction) -> RiskCase:
             "risk_level": assessment["risk_level"],
             "signals": [s.model_dump() for s in assessment["signals"]]
         }
-        investigation_report = llm_service.investigate(case_context)
+        investigation_report = await llm_service.investigate(case_context)
         investigation = investigation_report
         
     # 6. Create Case

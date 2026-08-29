@@ -12,7 +12,7 @@ import time
 import razorpay
 from dotenv import load_dotenv
 
-# Load keys from scripts/ans.env
+# Load keys from scripts/.env
 load_dotenv(dotenv_path="scripts/.env", override=True)
 
 KEY_ID     = os.getenv("RAZORPAY_KEY_ID",     "YOUR_NEW_TEST_KEY_ID")

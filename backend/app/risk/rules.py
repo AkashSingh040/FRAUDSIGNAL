@@ -85,10 +85,12 @@ def evaluate_risk(tx: NormalizedTransaction, model_prob: float = None, velocity_
         # If probability = 1, model_score is 100.
         if model_prob >= optimal_thresh:
             # Scale from 50 to 100
-            model_score = 50 + int(((model_prob - optimal_thresh) / (1.0 - optimal_thresh)) * 50)
+            divisor = max(1e-6, 1.0 - optimal_thresh)
+            model_score = 50 + int(((model_prob - optimal_thresh) / divisor) * 50)
         else:
             # Scale from 0 to 50
-            model_score = int((model_prob / optimal_thresh) * 50)
+            divisor = max(1e-6, optimal_thresh)
+            model_score = int((model_prob / divisor) * 50)
             
         # Weighting: 60% ML, 40% Rules
         final_score = int((model_score * 0.6) + (min(score, 100) * 0.4))

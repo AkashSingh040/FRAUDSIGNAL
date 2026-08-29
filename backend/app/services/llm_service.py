@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from typing import Dict, Any, Optional
-from groq import Groq
+from groq import AsyncGroq
 from app.config import settings
 from app.schemas.models import InvestigationReport, ActionDecision
 
@@ -12,7 +12,7 @@ class LLMService:
     def __init__(self):
         # We still read from LLM_API_KEY but pass to Groq
         self.api_key = settings.LLM_API_KEY
-        self.client = Groq(api_key=self.api_key) if self.api_key else None
+        self.client = AsyncGroq(api_key=self.api_key) if self.api_key else None
 
     def _deterministic_fallback(self, case_context: Dict[str, Any]) -> InvestigationReport:
         logger.info("Using deterministic investigation fallback.")
@@ -45,7 +45,7 @@ class LLMService:
             confidence=0.8
         )
 
-    def investigate(self, case_context: Dict[str, Any]) -> InvestigationReport:
+    async def investigate(self, case_context: Dict[str, Any]) -> InvestigationReport:
         if not self.client:
             return self._deterministic_fallback(case_context)
             
@@ -68,7 +68,7 @@ class LLMService:
         """
         
         try:
-            response = self.client.chat.completions.create(
+            response = await self.client.chat.completions.create(
                 model=settings.LLM_MODEL or "llama3-8b-8192",
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -82,7 +82,7 @@ class LLMService:
             )
             
             content = ""
-            for chunk in response:
+            async for chunk in response:
                 if chunk.choices[0].delta.content is not None:
                     content += chunk.choices[0].delta.content
                     
