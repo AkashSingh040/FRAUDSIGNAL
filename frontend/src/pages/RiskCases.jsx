@@ -1,13 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { casesApi } from '../services/api';
 import { Search, ArrowRight, Filter, Download, BoxSelect } from 'lucide-react';
 
 const RiskCases = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || "");
   const [filterLevel, setFilterLevel] = useState("ALL");
+
+  useEffect(() => {
+    const q = searchParams.get('q') || "";
+    if (q !== searchTerm) {
+      setSearchTerm(q);
+    }
+  }, [searchParams]);
+
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setSearchTerm(val);
+    if (val) {
+      setSearchParams({ q: val });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   useEffect(() => {
     casesApi.list()
@@ -119,7 +137,7 @@ const RiskCases = () => {
               placeholder="Search case ID, transaction..." 
               className="form-input"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
             />
           </div>
         </div>

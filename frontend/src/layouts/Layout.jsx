@@ -1,9 +1,26 @@
-import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Outlet, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Shield, Activity, Search, Brain, Webhook, Settings, Database, Server, Bell, User } from 'lucide-react';
 
 const Layout = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+
+  useEffect(() => {
+    setSearchQuery(searchParams.get('q') || '');
+  }, [searchParams]);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (searchQuery.trim()) {
+        navigate(`/cases?q=${encodeURIComponent(searchQuery.trim())}`);
+      } else {
+        navigate(`/cases`);
+      }
+    }
+  };
 
   const isNavActive = (path) => {
     if (path === '/') {
@@ -79,7 +96,14 @@ const Layout = () => {
           
           <div className="search-input-wrapper" style={{ margin: '0 auto' }}>
             <Search />
-            <input type="text" placeholder="Search transaction, case ID..." className="form-input" />
+            <input 
+              type="text" 
+              placeholder="Search transaction, case ID..." 
+              className="form-input" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+            />
           </div>
 
           <div className="flex items-center gap-4 text-muted">
