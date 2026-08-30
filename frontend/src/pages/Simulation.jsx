@@ -42,6 +42,7 @@ const Simulation = () => {
           // 3. Handle success
           setStatus('success');
           setMessage(`Payment successful! Payment ID: ${response.razorpay_payment_id}. The backend webhook is now processing this transaction through the risk engine. Check the Risk Cases page shortly.`);
+          setLoading(false);
         },
         prefill: {
           name: 'Demo User',
@@ -63,6 +64,7 @@ const Simulation = () => {
       rzp.on('payment.failed', function (response){
         setStatus('error');
         setMessage(`Payment Failed: ${response.error.description}`);
+        setLoading(false);
       });
       
       rzp.open();
@@ -132,21 +134,29 @@ const Simulation = () => {
         </button>
 
         {status === 'success' && (
-          <div className="mt-6 p-4 rounded-lg bg-success/10 border border-success/20 text-success flex items-start gap-3">
-            <CheckCircle size={20} className="shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold mb-1">Transaction Completed</h4>
-              <p className="text-sm opacity-90">{message}</p>
+          <div className="mt-6 card border" style={{ borderColor: 'var(--success)' }}>
+            <div className="flex items-start gap-4">
+              <div className="p-2 rounded-full" style={{ backgroundColor: 'rgba(0, 230, 118, 0.1)' }}>
+                <CheckCircle size={24} className="text-success shrink-0" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg text-success mb-1 tracking-wide">Transaction Completed</h4>
+                <p className="text-sm text-muted leading-relaxed">{message}</p>
+              </div>
             </div>
           </div>
         )}
 
         {status === 'error' && (
-          <div className="mt-6 p-4 rounded-lg bg-danger/10 border border-danger/20 text-danger flex items-start gap-3">
-            <AlertCircle size={20} className="shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-semibold mb-1">Simulation Failed</h4>
-              <p className="text-sm opacity-90">{message}</p>
+          <div className="mt-6 card border" style={{ borderColor: 'var(--danger)' }}>
+            <div className="flex items-start gap-4">
+              <div className="p-2 rounded-full" style={{ backgroundColor: 'rgba(255, 71, 87, 0.1)' }}>
+                <AlertCircle size={24} className="text-danger shrink-0" />
+              </div>
+              <div>
+                <h4 className="font-bold text-lg text-danger mb-1 tracking-wide">Simulation Failed</h4>
+                <p className="text-sm text-muted leading-relaxed">{message}</p>
+              </div>
             </div>
           </div>
         )}

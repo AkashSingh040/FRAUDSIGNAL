@@ -7,32 +7,22 @@ const RiskCases = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || "");
-  const [filterLevel, setFilterLevel] = useState(searchParams.get('level') || "ALL");
-  const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || "ALL");
-
-  useEffect(() => {
-    const q = searchParams.get('q') || "";
-    if (q !== searchTerm) {
-      setSearchTerm(q);
-    }
-  }, [searchParams]);
+  const searchTerm = searchParams.get('q') || "";
+  const filterLevel = searchParams.get('level') || "ALL";
+  const filterStatus = searchParams.get('status') || "ALL";
 
   const handleSearchChange = (e) => {
     const val = e.target.value;
-    setSearchTerm(val);
     updateSearchParams({ q: val || null });
   };
 
   const handleLevelChange = (e) => {
     const val = e.target.value;
-    setFilterLevel(val);
     updateSearchParams({ level: val !== "ALL" ? val : null });
   };
 
   const handleStatusChange = (e) => {
     const val = e.target.value;
-    setFilterStatus(val);
     updateSearchParams({ status: val !== "ALL" ? val : null });
   };
 
@@ -194,7 +184,6 @@ const RiskCases = () => {
           <table className="data-table">
             <thead>
               <tr>
-                <th style={{ width: '40px' }}><BoxSelect size={14} className="text-muted" /></th>
                 <th>Case / Transaction</th>
                 <th>Risk Score</th>
                 <th>Risk Level</th>
@@ -207,13 +196,13 @@ const RiskCases = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td colSpan="7" style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
                     Loading cases...
                   </td>
                 </tr>
               ) : filteredCases.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ padding: '64px 16px', textAlign: 'center' }}>
+                  <td colSpan="7" style={{ padding: '64px 16px', textAlign: 'center' }}>
                     <div className="flex-col items-center justify-center">
                       <ShieldAlert size={48} className="text-muted mb-4 opacity-50" />
                       <div className="text-primary font-semibold mb-2">No risk cases found</div>
@@ -224,9 +213,6 @@ const RiskCases = () => {
               ) : (
                 filteredCases.map(c => (
                   <tr key={c.case_id}>
-                    <td>
-                      <input type="checkbox" style={{ accentColor: 'var(--primary)' }} />
-                    </td>
                     <td>
                       <div className="font-mono text-xs font-semibold text-primary mb-1">{c.case_id}</div>
                       <div className="font-mono text-xs text-muted">{c.transaction_id || 'pay_unknown'}</div>
