@@ -70,10 +70,10 @@ const Dashboard = () => {
       </div>
 
       <div className="grid-4">
-        <StatCard title="Total Transactions" value={summary.total_transactions} icon={<Activity size={18} className="text-primary" />} />
-        <StatCard title="Open Investigations" value={summary.open_investigations} icon={<Users size={18} className="text-warning" />} />
-        <StatCard title="High Risk Rate" value={`${highRiskRate}%`} icon={<ShieldAlert size={18} className="text-danger" />} />
-        <StatCard title="Confirmed Fraud" value={summary.confirmed_fraud} icon={<Shield size={18} className="text-success" />} />
+        <StatCard title="Total Transactions" value={summary.total_transactions} icon={<Activity size={18} className="text-primary" />} to="/cases" />
+        <StatCard title="Open Investigations" value={summary.open_investigations} icon={<Users size={18} className="text-warning" />} to="/cases?status=OPEN" />
+        <StatCard title="High Risk Rate" value={`${highRiskRate}%`} icon={<ShieldAlert size={18} className="text-danger" />} to="/cases?level=HIGH" />
+        <StatCard title="Confirmed Fraud" value={summary.confirmed_fraud} icon={<Shield size={18} className="text-success" />} to="/cases?status=CONFIRMED_FRAUD" />
       </div>
 
       <div className="grid-charts">
@@ -223,14 +223,30 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, icon }) => (
-  <div className="stat-card">
-    <div className="stat-header">
-      <span className="stat-label">{title}</span>
-      {icon}
+const StatCard = ({ title, value, icon, to }) => {
+  const content = (
+    <>
+      <div className="stat-header">
+        <span className="stat-label">{title}</span>
+        {icon}
+      </div>
+      <div className="stat-value">{value}</div>
+    </>
+  );
+
+  if (to) {
+    return (
+      <Link to={to} className="stat-card hover:bg-bg-hover transition-colors" style={{ display: 'flex', textDecoration: 'none' }}>
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <div className="stat-card">
+      {content}
     </div>
-    <div className="stat-value">{value}</div>
-  </div>
-);
+  );
+};
 
 export default Dashboard;

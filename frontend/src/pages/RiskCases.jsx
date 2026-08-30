@@ -8,7 +8,8 @@ const RiskCases = () => {
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get('q') || "");
-  const [filterLevel, setFilterLevel] = useState("ALL");
+  const [filterLevel, setFilterLevel] = useState(searchParams.get('level') || "ALL");
+  const [filterStatus, setFilterStatus] = useState(searchParams.get('status') || "ALL");
 
   useEffect(() => {
     const q = searchParams.get('q') || "";
@@ -20,11 +21,28 @@ const RiskCases = () => {
   const handleSearchChange = (e) => {
     const val = e.target.value;
     setSearchTerm(val);
-    if (val) {
-      setSearchParams({ q: val });
-    } else {
-      setSearchParams({});
-    }
+    updateSearchParams({ q: val || null });
+  };
+
+  const handleLevelChange = (e) => {
+    const val = e.target.value;
+    setFilterLevel(val);
+    updateSearchParams({ level: val !== "ALL" ? val : null });
+  };
+
+  const handleStatusChange = (e) => {
+    const val = e.target.value;
+    setFilterStatus(val);
+    updateSearchParams({ status: val !== "ALL" ? val : null });
+  };
+
+  const updateSearchParams = (updates) => {
+    const newParams = new URLSearchParams(searchParams);
+    Object.entries(updates).forEach(([key, val]) => {
+      if (val) newParams.set(key, val);
+      else newParams.delete(key);
+    });
+    setSearchParams(newParams);
   };
 
   useEffect(() => {
@@ -65,7 +83,10 @@ const RiskCases = () => {
     else if (filterLevel === 'MEDIUM') matchesFilter = c.risk_score >= 30 && c.risk_score < 70;
     else if (filterLevel === 'LOW') matchesFilter = c.risk_score < 30;
 
-    return matchesSearch && matchesFilter;
+    let matchesStatus = true;
+    if (filterStatus !== 'ALL') matchesStatus = c.status === filterStatus;
+
+    return matchesSearch && matchesFilter && matchesStatus;
   });
 
   const handleExportCSV = () => {
@@ -112,13 +133,30 @@ const RiskCases = () => {
             <select 
               className="btn btn-outline text-xs" 
               value={filterLevel}
-              onChange={(e) => setFilterLevel(e.target.value)}
+              onChange={handleLevelChange}
               style={{ appearance: 'none', paddingRight: '28px', backgroundColor: 'var(--bg-surface)' }}
             >
               <option value="ALL">All Risks</option>
               <option value="HIGH">High Risk</option>
               <option value="MEDIUM">Medium Risk</option>
               <option value="LOW">Low Risk</option>
+            </select>
+            <Filter size={12} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
+          </div>
+          <div style={{ position: 'relative' }}>
+            <select 
+              className="btn btn-outline text-xs" 
+              value={filterStatus}
+              onChange={handleStatusChange}
+              style={{ appearance: 'none', paddingRight: '28px', backgroundColor: 'var(--bg-surface)' }}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="OPEN">Open</option>
+              <option value="INVESTIGATING">Investigating</option>
+              <option value="REVIEW">Review</option>
+              <option value="CONFIRMED_FRAUD">Confirmed Fraud</option>
+              <option value="FALSE_POSITIVE">False Positive</option>
+              <option value="RESOLVED">Resolved</option>
             </select>
             <Filter size={12} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: 'var(--text-muted)' }} />
           </div>

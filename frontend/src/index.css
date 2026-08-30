@@ -237,6 +237,11 @@ a {
   flex-direction: column;
 }
 
+a.stat-card:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
 .stat-header {
   display: flex;
   align-items: center;
@@ -655,4 +660,26 @@ a {
 .log-block-danger {
   background-color: rgba(239, 68, 68, 0.05);
   border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive Overrides */
+@media (max-width: 1200px) {
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .grid-charts {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .grid-4, .grid-3, .grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .main-content {
+    margin-left: 0;
+  }
 }

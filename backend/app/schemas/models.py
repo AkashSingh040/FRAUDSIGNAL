@@ -50,7 +50,7 @@ class RiskSignal(BaseModel):
     confidence: float
 
 class RiskAssessment(BaseModel):
-    risk_score: int
+    risk_score: float
     risk_level: RiskLevel
     fraud_probability: Optional[float] = None
     signals: List[RiskSignal]
@@ -73,7 +73,7 @@ class RiskCase(BaseModel):
     transaction_id: str
     merchant_id: str
     customer_id: str
-    risk_score: int
+    risk_score: float
     risk_level: RiskLevel
     signals: List[RiskSignal]
     evidence: Dict[str, Any]
