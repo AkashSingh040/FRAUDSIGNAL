@@ -81,7 +81,7 @@ const Simulation = () => {
   useEffect(() => {
     if (profile === 'SAFE') setAmount(450);
     if (profile === 'MEDIUM') setAmount(15000); // Triggers Elevated Amount
-    if (profile === 'HIGH') setAmount(48500); // Triggers Unusually High Amount + Notes
+    if (profile === 'HIGH') setAmount(55000); // Triggers Unusually High Amount (> 50k threshold) + Notes
   }, [profile]);
 
   return (

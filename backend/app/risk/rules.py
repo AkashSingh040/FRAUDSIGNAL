@@ -56,8 +56,12 @@ def generate_signals(tx: NormalizedTransaction, velocity_count: int = 0, histori
                 confidence=0.7
             ))
 
-    # 2. Velocity — Multi-level
-    if velocity_count > 6:
+    # 2. Velocity — Multi-level (Includes check for simulated velocity)
+    simulated_velocity = False
+    if tx.metadata and tx.metadata.get("is_high_velocity"):
+        simulated_velocity = True
+        
+    if velocity_count > 6 or simulated_velocity:
         signals.append(RiskSignal(
             signal_id="CRITICAL_VELOCITY",
             title="Critical transaction velocity",
@@ -193,14 +197,14 @@ def evaluate_risk(tx: NormalizedTransaction, model_prob: float = None, velocity_
         final_score = min(score, 100)
 
     # Signal-based floor: the ML model must not bury cases with real observable signals.
-    # If HIGH signals fired, the score must be at least MEDIUM (30) so analysts can act.
-    # If only MEDIUM signals fired, score must be at least 15.
     has_high  = any(s.severity == "HIGH"   for s in signals if s.source != "model")
     has_medium = any(s.severity == "MEDIUM" for s in signals if s.source != "model")
-    if has_high and final_score < 30:
+    
+    # If a rule was blatantly violated, the rules engine acts as a circuit breaker, overriding the ML model
+    if has_high and final_score < 70:
+        final_score = 70
+    elif has_medium and final_score < 30:
         final_score = 30
-    elif has_medium and final_score < 15:
-        final_score = 15
 
     # Determine level and decision
     if final_score >= 70:
