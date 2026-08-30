@@ -17,15 +17,38 @@ async def process_transaction(tx: NormalizedTransaction) -> RiskCase:
     # 2. Get Model Probability
     prob = model_loader.predict(tx_dict)
     
-    # 3. Compute real velocity from DB — count customer's transactions in the last 60 min
+    # 3. Compute real velocity and historical profile from DB
     one_hour_ago = (datetime.utcnow() - timedelta(hours=1)).isoformat()
+    
+    # We MUST avoid data leakage by explicitly excluding the current transaction
+    # even though it was just inserted into the DB in step 1.
     velocity_count = await db.transactions.count_documents({
         "customer_id": tx.customer_id,
-        "timestamp": {"$gte": one_hour_ago}
+        "timestamp": {"$gte": one_hour_ago},
+        "transaction_id": {"$ne": tx.transaction_id}
     })
     
-    # 4. Evaluate Risk (Rules + Model)
-    assessment = evaluate_risk(tx, prob, velocity_count=velocity_count)
+    # Get historical profile (avg amount, known devices)
+    pipeline = [
+        {"$match": {"customer_id": tx.customer_id, "transaction_id": {"$ne": tx.transaction_id}}},
+        {"$group": {
+            "_id": "$customer_id",
+            "avg_amount": {"$avg": "$amount"},
+            "devices": {"$addToSet": "$device.device_id"}
+        }}
+    ]
+    cursor = db.transactions.aggregate(pipeline)
+    hist_stats = await cursor.to_list(1)
+    
+    historical_data = None
+    if hist_stats:
+        historical_data = {
+            "avg_amount": hist_stats[0].get("avg_amount"),
+            "known_devices": hist_stats[0].get("devices", [])
+        }
+    
+    # 4. Evaluate Risk (Rules + Model + Historical Context)
+    assessment = evaluate_risk(tx, prob, velocity_count=velocity_count, historical_data=historical_data)
     
     # 4. Save Signals
     for sig in assessment["signals"]:
