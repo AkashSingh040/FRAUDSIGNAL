@@ -4,6 +4,7 @@ import Layout from './layouts/Layout';
 import Dashboard from './pages/Dashboard';
 import RiskCases from './pages/RiskCases';
 import Investigation from './pages/Investigation';
+import Simulation from './pages/Simulation';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="cases" element={<RiskCases />} />
           <Route path="cases/:caseId" element={<Investigation />} />
+          <Route path="simulation" element={<Simulation />} />
         </Route>
       </Routes>
     </Router>

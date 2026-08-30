@@ -22,4 +22,8 @@ export const riskApi = {
   getStatus: () => api.get('/risk/status'),
 };
 
+export const razorpayApi = {
+  createOrder: (amount, profile) => api.post('/razorpay/create-order', { amount, profile }),
+};
+
 export default api;

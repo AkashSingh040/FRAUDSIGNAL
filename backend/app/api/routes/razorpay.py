@@ -59,6 +59,55 @@ from pymongo.errors import DuplicateKeyError
 
 logger = logging.getLogger(__name__)
 
+from pydantic import BaseModel
+
+class CreateOrderRequest(BaseModel):
+    amount: int
+    profile: str = "SAFE"
+
+@router.post("/create-order")
+async def create_order(req: CreateOrderRequest):
+    import razorpay
+    key_id = os.getenv("RAZORPAY_KEY_ID")
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
+    
+    if not key_id or not key_secret:
+        raise HTTPException(status_code=500, detail="Razorpay keys not configured in backend.")
+        
+    client = razorpay.Client(auth=(key_id, key_secret))
+    
+    # Configure notes based on the chosen risk profile to trigger specific rules
+    notes = {}
+    if req.profile == "HIGH":
+        # Triggers Location Mismatch (HIGH) and Velocity (HIGH)
+        notes = {
+            "expected_country": "IN",
+            "ip_country": "US",
+            "is_high_velocity": True,
+            "tx_count_1h": 7
+        }
+    elif req.profile == "MEDIUM":
+        # Medium risk notes or just rely on elevated amount
+        notes = {
+            "is_medium_risk": True
+        }
+        
+    try:
+        order = client.order.create({
+            "amount": req.amount * 100, # Razorpay expects paise
+            "currency": "INR",
+            "payment_capture": "1",
+            "notes": notes
+        })
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "key_id": key_id
+        }
+    except Exception as e:
+        logger.error(f"Error creating Razorpay order: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/webhook")
 async def razorpay_webhook(request: Request, background_tasks: BackgroundTasks):
     """

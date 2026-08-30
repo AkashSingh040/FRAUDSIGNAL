@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Shield, Activity, Search, Brain, Webhook, Settings, Database, Server, Bell, User } from 'lucide-react';
+import { Shield, Activity, Search, Brain, Webhook, Settings, Database, Server, Bell, User, Play } from 'lucide-react';
 
 const Layout = () => {
   const location = useLocation();
@@ -49,6 +49,12 @@ const Layout = () => {
             <span>Risk Cases</span>
           </Link>
 
+          <div className="nav-section-title">Simulation & Demo</div>
+          <Link to="/simulation" className={`nav-item ${isNavActive('/simulation') ? 'active' : ''}`}>
+            <Play />
+            <span>Test Webhook</span>
+          </Link>
+
           <div className="nav-section-title">Intelligence</div>
           <Link to="#" className="nav-item">
             <Brain />
@@ -57,12 +63,6 @@ const Layout = () => {
           <Link to="#" className="nav-item">
             <Webhook />
             <span>Webhooks</span>
-          </Link>
-
-          <div className="nav-section-title">System</div>
-          <Link to="#" className="nav-item">
-            <Settings />
-            <span>Settings</span>
           </Link>
         </nav>
         
