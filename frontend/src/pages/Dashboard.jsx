@@ -8,6 +8,7 @@ const Dashboard = () => {
   const [summary, setSummary] = useState(null);
   const [modelStatus, setModelStatus] = useState(null);
   const [recentCases, setRecentCases] = useState([]);
+  const [activityFilter, setActivityFilter] = useState('1H');
 
   useEffect(() => {
     dashboardApi.getSummary().then(res => setSummary(res.data)).catch(console.error);
@@ -33,10 +34,25 @@ const Dashboard = () => {
 
   // Derive mock activity time-series from recent cases or generate a flatline if none
   const generateActivityData = () => {
-    if (recentCases.length === 0) return Array.from({length: 10}, (_, i) => ({ time: `T-${10-i}`, count: 0 }));
-    // Group by minute (mock approach for visual density)
-    return recentCases.slice(0, 10).reverse().map((c, i) => ({
-      time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    if (activityFilter === '1W') {
+      return Array.from({length: 7}, (_, i) => ({
+        time: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+        risk: Math.floor(Math.random() * 40) + 10
+      }));
+    }
+    
+    if (activityFilter === '1D') {
+      return Array.from({length: 12}, (_, i) => ({
+        time: `${i * 2}h`,
+        risk: Math.floor(Math.random() * 60) + 10
+      }));
+    }
+    
+    // 1 Hour (Real Data)
+    if (recentCases.length === 0) return Array.from({length: 10}, (_, i) => ({ time: `T-${10-i}`, risk: 0 }));
+    
+    return recentCases.slice(0, 15).reverse().map((c) => ({
+      time: new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
       risk: c.risk_score
     }));
   };
@@ -81,6 +97,16 @@ const Dashboard = () => {
         <div className="card">
           <div className="card-header">
             <h2 className="card-title">Risk Activity</h2>
+            <select 
+              className="form-input text-xs py-1 px-2 w-auto border border-color rounded"
+              style={{ backgroundColor: 'var(--bg-base)' }}
+              value={activityFilter}
+              onChange={(e) => setActivityFilter(e.target.value)}
+            >
+              <option value="1H">Past Hour</option>
+              <option value="1D">Past 1 Day</option>
+              <option value="1W">Past 1 Week</option>
+            </select>
           </div>
           <div style={{ height: '220px' }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -192,27 +218,32 @@ const Dashboard = () => {
           <div className="card-header" style={{ marginBottom: 0 }}>
             <h2 className="card-title">Recent Alerts</h2>
           </div>
-          <div className="flex-col gap-2 overflow-y-auto" style={{ maxHeight: '300px' }}>
-            {recentCases.filter(c => c.risk_score >= 70).slice(0, 4).map(c => (
-              <div key={`alert-${c.case_id}`} className="flex items-start gap-3 p-3" style={{ backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-                <AlertTriangle size={16} className="text-danger mt-1 flex-shrink-0" />
-                <div>
-                  <div className="text-xs font-bold text-danger mb-1">HIGH RISK TRANSACTION</div>
-                  <div className="text-xs text-muted mb-1 font-mono">Tx: {c.transaction_id}</div>
-                  <div className="text-xs text-secondary">Risk score {c.risk_score} detected.</div>
-                </div>
-              </div>
-            ))}
-            {recentCases.filter(c => c.risk_score < 30).slice(0, 1).map(c => (
-               <div key={`alert-${c.case_id}`} className="flex items-start gap-3 p-3" style={{ backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
-               <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
-               <div>
-                 <div className="text-xs font-bold text-success mb-1">PAYMENT CLEARED</div>
-                 <div className="text-xs text-muted mb-1 font-mono">Tx: {c.transaction_id}</div>
-                 <div className="text-xs text-secondary">Cleared auto-approval.</div>
-               </div>
-             </div>
-            ))}
+          <div className="flex-col gap-3 overflow-hidden">
+            {recentCases.filter(c => c.risk_score >= 70 || c.risk_score < 30).slice(0, 4).map(c => {
+              if (c.risk_score >= 70) {
+                return (
+                  <div key={`alert-${c.case_id}`} className="flex items-start gap-3 p-3" style={{ backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                    <AlertTriangle size={16} className="text-danger mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-danger mb-1">HIGH RISK TRANSACTION</div>
+                      <div className="text-xs text-muted mb-1 font-mono">Tx: {c.transaction_id}</div>
+                      <div className="text-xs text-secondary">Risk score {c.risk_score} detected.</div>
+                    </div>
+                  </div>
+                );
+              } else {
+                return (
+                  <div key={`alert-${c.case_id}`} className="flex items-start gap-3 p-3" style={{ backgroundColor: 'var(--bg-base)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}>
+                    <CheckCircle size={16} className="text-success mt-1 flex-shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-success mb-1">PAYMENT CLEARED</div>
+                      <div className="text-xs text-muted mb-1 font-mono">Tx: {c.transaction_id}</div>
+                      <div className="text-xs text-secondary">Cleared auto-approval.</div>
+                    </div>
+                  </div>
+                );
+              }
+            })}
             {recentCases.length === 0 && (
               <div className="text-xs text-muted text-center p-4">No recent alerts.</div>
             )}

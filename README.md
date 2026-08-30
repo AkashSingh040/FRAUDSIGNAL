@@ -37,8 +37,9 @@ FraudSignal is a **modern, microservices-based** fraud detection platform built 
 
 | Problem | Solution |
 |---------|----------|
-| High False Positives | **LightGBM ML Engine** trained on the IEEE-CIS Fraud dataset |
+| False Negatives on Edge Cases | **Hybrid Engine** combining LightGBM (60%) with deterministic Rules (40%) |
 | Manual Investigation Bottleneck | **Groq LLM Investigator** autonomously reviews flagged cases |
+| Silent Anomalies | **Circuit Breaker Logic** sets strict risk floors based on transaction history and velocity |
 | Duplicate Webhook Processing | **Strict Idempotency** via MongoDB unique indexes |
 
 The platform seamlessly intercepts **Razorpay** webhooks, evaluates them mathematically in milliseconds, and pushes high-risk AI-investigated cases to a React dashboard in real-time.
@@ -76,16 +77,15 @@ The platform seamlessly intercepts **Razorpay** webhooks, evaluates them mathema
 
 ## ✨ Features
 
-### 🧠 LightGBM Risk Engine
-- Evaluates transactions mathematically based on **IEEE-CIS dataset** features
-- Converts raw Razorpay JSON strings into structured Pandas dataframes instantly via forced float casting
-- Calculates a fraud probability (0.0 to 1.0) and translates it to a Risk Score
-- Falls back gracefully with a default score if feature extraction fails
+### 🧠 Hybrid Risk Engine (LightGBM + Rules)
+- Evaluates transactions using a **60/40 weighted split**: 60% driven by LightGBM machine learning, 40% driven by a deterministic Rules Engine.
+- **Circuit Breaker Floors**: Automatically overrides low ML probabilities if severe anomalies (like extreme velocity or geographic IP mismatch) are detected.
+- Converts raw Razorpay JSON strings into structured Pandas dataframes instantly via forced float casting.
 
 ### 🤖 AI Investigator (Groq LLM)
-- Acts as a forensic fraud investigator for any transaction scoring >30
-- Analyzes transaction metadata, device info, and user patterns
-- Outputs a structured JSON report detailing **evidence, reasoning, uncertainties, and a recommended action** (e.g. BLOCK, MANUAL_REVIEW)
+- Acts as a forensic fraud investigator for any transaction scoring >30.
+- Analyzes transaction metadata, device info, customer history, and velocity patterns.
+- Outputs a structured JSON report detailing **evidence, reasoning, uncertainties, and a recommended action** (e.g. BLOCK, MANUAL_REVIEW).
 
 ### 💳 Webhook Ingestion
 - Real-time event listening for `payment.captured` and `payment.failed`
@@ -94,11 +94,9 @@ The platform seamlessly intercepts **Razorpay** webhooks, evaluates them mathema
 
 ### 💻 Fraud Intelligence Console (React UI)
 - **Security Operations Dashboard:** A completely custom dark-mode interface built for high-density data visualization, dropping generic admin panel layouts for a professional fintech aesthetic.
-- **Real-time Observability:** Features Recharts-powered area graphs for risk spikes over time and compact donut charts for risk distribution.
-- **Data-Dense Risk Cases Table:** Includes Traffic-Light Risk styling, instantaneous **Risk Level Filtering** (High/Medium/Low), and **CSV Exports** for external audits.
-- **Forensic Case Investigation:** Deep-dive UI into individual cases presenting LLM evidence, reasoning, uncertainties, and exact LightGBM thresholds in a structured security log format.
-- **Smart Alerting:** Intelligent sidebar instantly flags high-risk velocity anomalies or anomalies across live traffic.
-
+- **Data-Dense Risk Cases Table:** Includes Traffic-Light Risk styling, instantaneous URL-synced **Risk Level Filtering**, and **CSV Exports** for external audits.
+- **Live Checkout Simulation:** Features an on-page Razorpay Checkout sandbox to test dynamic risk scoring.
+- **Bulk Seed Engine:** Uses FastAPI `BackgroundTasks` to inject highly-randomized transactions (Safe, Medium, High Risk) instantly into the live engine to bypass API limits and speed up demos.
 ---
 
 ## 🏗️ System Architecture
@@ -156,12 +154,15 @@ flowchart LR
         C -- Yes --> E["Extract payment_id"]
     end
 
-    subgraph Eval["Processing & ML"]
+    subgraph Eval["Hybrid Processing"]
         E --> F["MongoDB Insert\nunique: payment_id"]
         F -- DuplicateKeyError --> G["Safely Drop"]
-        F -- Success --> H["Cast notes\nto numeric floats"]
-        H --> I["LightGBM Model"]
-        I --> J{"Score > 30?"}
+        F -- Success --> H["Fetch Customer History"]
+        H --> I["LightGBM Model (60%)"]
+        H --> R["Rules Engine (40%)"]
+        I --> S["Final Score Calculation\n+ Circuit Breakers"]
+        R --> S
+        S --> J{"Score >= 30?"}
     end
 
     subgraph AI["AI Investigation"]
@@ -365,6 +366,12 @@ Watch your Dashboard update instantly as Groq investigates the payload!
 ---
 
 ## 🐛 Bug Fixes & Changelog
+
+### v1.2.0 — Hybrid Engine & Bulk Simulation
+- **Hybrid Risk Scoring:** Re-engineered the risk engine to use a 60/40 weighted split (LightGBM/Rules).
+- **Circuit Breakers:** Added safety floors (70 for critical, 30 for medium warnings) that strictly bypass the ML model if undeniable deterministic anomalies (like location mismatch + high velocity) occur.
+- **Bulk Seed Engine:** Added a massive data seeder in the `Simulation & Demo` page. It utilizes FastAPI `BackgroundTasks` to instantly push 10 highly-randomized simulated transactions into the live dashboard without freezing the UI.
+- **Premium UI Overhaul:** Upgraded the Simulation frontend with premium dark-mode `.card` containers and smooth CSS grids. Fixed state de-synchronization bugs in the Risk Cases URL-based filters.
 
 ### v1.1.0 — Fraud Intelligence Console Overhaul
 - **Total Frontend Redesign:** Discarded generic admin templates for a bespoke, dense, dark-mode Security Operations console utilizing pure Vanilla CSS.
