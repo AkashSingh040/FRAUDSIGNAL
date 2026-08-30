@@ -20,6 +20,7 @@ export const casesApi = {
 export const riskApi = {
   score: (tx) => api.post('/risk/score', tx),
   getStatus: () => api.get('/risk/status'),
+  seed: () => api.post('/risk/seed'),
 };
 
 export const razorpayApi = {
