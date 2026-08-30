@@ -71,9 +71,9 @@ const Dashboard = () => {
 
       <div className="grid-4">
         <StatCard title="Total Transactions" value={summary.total_transactions} icon={<Activity size={18} className="text-primary" />} to="/cases" />
-        <StatCard title="Open Investigations" value={summary.open_investigations} icon={<Users size={18} className="text-warning" />} to="/cases?status=OPEN" />
+        <StatCard title="Open Investigations" value={summary.open_investigations} icon={<Users size={18} className="text-warning" />} to="/cases?status=OPEN_INV" />
         <StatCard title="High Risk Rate" value={`${highRiskRate}%`} icon={<ShieldAlert size={18} className="text-danger" />} to="/cases?level=HIGH" />
-        <StatCard title="Confirmed Fraud" value={summary.confirmed_fraud} icon={<Shield size={18} className="text-success" />} to="/cases?status=CONFIRMED_FRAUD" />
+        <StatCard title="Confirmed Fraud" value={summary.confirmed_fraud} icon={<Shield size={18} className="text-success" />} to="/cases?status=FRAUD_OR_BLOCKED" />
       </div>
 
       <div className="grid-charts">

@@ -84,7 +84,15 @@ const RiskCases = () => {
     else if (filterLevel === 'LOW') matchesFilter = c.risk_score < 30;
 
     let matchesStatus = true;
-    if (filterStatus !== 'ALL') matchesStatus = c.status === filterStatus;
+    if (filterStatus !== 'ALL') {
+      if (filterStatus === 'OPEN_INV') {
+        matchesStatus = ['OPEN', 'INVESTIGATING', 'REVIEW'].includes(c.status);
+      } else if (filterStatus === 'FRAUD_OR_BLOCKED') {
+        matchesStatus = c.status === 'CONFIRMED_FRAUD' || c.final_decision === 'BLOCK' || c.recommended_action === 'BLOCK';
+      } else {
+        matchesStatus = c.status === filterStatus;
+      }
+    }
 
     return matchesSearch && matchesFilter && matchesStatus;
   });
@@ -151,6 +159,8 @@ const RiskCases = () => {
               style={{ appearance: 'none', paddingRight: '28px', backgroundColor: 'var(--bg-surface)' }}
             >
               <option value="ALL">All Statuses</option>
+              <option value="OPEN_INV">Active Investigations</option>
+              <option value="FRAUD_OR_BLOCKED">Fraud / Blocked</option>
               <option value="OPEN">Open</option>
               <option value="INVESTIGATING">Investigating</option>
               <option value="REVIEW">Review</option>

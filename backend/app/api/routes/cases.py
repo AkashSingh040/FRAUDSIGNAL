@@ -6,11 +6,19 @@ from app.database import get_database
 
 router = APIRouter()
 
-@router.get("/", response_model=List[RiskCase])
+@router.get("/")
 async def list_cases():
     db = get_database()
     cases = await db.cases.find().sort("created_at", -1).to_list(100)
-    return [RiskCase(**c) for c in cases]
+    
+    # Safely return cases without strict Pydantic validation to prevent crashes from old schema data
+    safe_cases = []
+    for c in cases:
+        if "_id" in c:
+            c["_id"] = str(c["_id"])
+        safe_cases.append(c)
+        
+    return safe_cases
 
 @router.get("/{case_id}", response_model=RiskCase)
 async def read_case(case_id: str):
