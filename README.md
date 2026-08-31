@@ -25,7 +25,7 @@
 
 FraudSignal directly tackles the core objective: **Stop the merchant from losing money to fraud and chargebacks.** 
 
-It features a working **Fraud-Spike Detector** (LightGBM) and an **Auto-Responder/Verifier** (Groq LLM). The entire system is strictly defense-only and was evaluated using honest, business-first metrics—including a comprehensive **False-Positive Cost Analysis**—measured against a strictly held-out test set.
+It features a working **Fraud-Spike Detector** (LightGBM) and an **Auto-Responder/Verifier** (Groq LLM). The entire system is strictly defense-only and was evaluated using honest, business-first metrics—including a comprehensive **False-Positive Cost Analysis**—measured against a strictly held-out test set. We also explicitly experimented with heavier alternatives like Random Forest, but actively rejected them in favor of LightGBM due to strict infrastructure latency and memory constraints.
 
 👉 **[Read the Full False-Positive Cost & Model Evaluation Report Here](MODEL_EVALUATION.md)**
 

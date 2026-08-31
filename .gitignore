@@ -37,9 +37,6 @@ data/raw/*
 data/processed/*
 !data/processed/.gitkeep
 
-# ML Models
-
-
 # IDE
 .idea/
 .vscode/

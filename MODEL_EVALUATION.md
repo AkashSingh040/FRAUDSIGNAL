@@ -88,3 +88,15 @@ To guarantee a **100% catch rate** on undeniable anomalies, FraudSignal implemen
 - Deterministic organic noise (0-6 points) is applied to the final score to prevent hard-coded metric outputs and provide a fluid, realistic risk distribution.
 
 This hybrid approach perfectly balances the statistical recall of ML with the zero-tolerance safety of traditional rule-based banking firewalls.
+
+## 10. Alternative Models Investigated (Random Forest)
+During our rigorous evaluation phase, we also conducted an extensive experiment evaluating a **Random Forest Classifier** as a potential alternative to the primary LightGBM engine. The experiment was conducted with strict adherence to our no-leakage policy (enforcing a chronological 60/20/20 train/validation/test split and fitting frequency-encoded categorical maps exclusively on the training partition).
+
+**Why we decided NOT to use Random Forest in production:**
+When evaluated fairly on the exact same untouched Test Set (without artificial undersampling), the Random Forest model achieved a PR-AUC of `0.1911`, offering a very slight lift over the LightGBM baseline (`0.1865`). 
+
+However, this marginal metric lift came with severe operational drawbacks:
+1. **Model Size:** The Random Forest artifact size was **~485 MB**, whereas the LightGBM artifact is **< 5 MB**. This would drastically bloat our deployment and break the strict memory limits enforced on our Render free-tier infrastructure.
+2. **Inference Latency:** The Random Forest inference time per transaction was over 3x slower (~0.0046 ms vs ~0.0015 ms for LightGBM).
+
+For an AI Risk Manager system like FraudSignal, constrained infrastructure and rapid inference latency are paramount. Therefore, the Random Forest model was rejected, and **LightGBM remains the production standard.** You can view the full experimental artifact in the `ml_model_experimentation/random_forest/` directory.
